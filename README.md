@@ -14,21 +14,26 @@ ngx_brotli is a set of two nginx modules:
 
 ## Table of Contents
 
-- [Status](#status)
-- [Installation](#installation)
-- [Configuration directives](#configuration-directives)
-  - [`brotli_static`](#brotli_static)
-  - [`brotli`](#brotli)
-  - [`brotli_types`](#brotli_types)
-  - [`brotli_buffers`](#brotli_buffers)
-  - [`brotli_comp_level`](#brotli_comp_level)
-  - [`brotli_window`](#brotli_window)
-  - [`brotli_min_length`](#brotli_min_length)
-- [Variables](#variables)
-  - [`$brotli_ratio`](#brotli_ratio)
-- [Sample configuration](#sample-configuration)
-- [Contributing](#contributing)
-- [License](#license)
+- [ngx\_brotli](#ngx_brotli)
+  - [Table of Contents](#table-of-contents)
+  - [Status](#status)
+  - [Installation](#installation)
+    - [Statically compiled](#statically-compiled)
+    - [Dynamically loaded](#dynamically-loaded)
+  - [Configuration directives](#configuration-directives)
+    - [`brotli_static`](#brotli_static)
+    - [`brotli`](#brotli)
+    - [`brotli_types`](#brotli_types)
+    - [`brotli_buffers`](#brotli_buffers)
+    - [`brotli_comp_level`](#brotli_comp_level)
+    - [`brotli_window`](#brotli_window)
+    - [`brotli_min_length`](#brotli_min_length)
+    - [`brotli_bypass`](#brotli_bypass)
+  - [Variables](#variables)
+    - [`$brotli_ratio`](#brotli_ratio)
+  - [Sample configuration](#sample-configuration)
+  - [Contributing](#contributing)
+  - [License](#license)
 
 ## Status
 
@@ -139,6 +144,21 @@ Sets Brotli window `size`. Acceptable values are `1k`, `2k`, `4k`, `8k`, `16k`,
 
 Sets the minimum `length` of a response that will be compressed.
 The length is determined only from the `Content-Length` response header field.
+
+- **syntax**: `brotli_max_length <length>`
+- **default**: `0`
+- **context**: `http`, `server`, `location`
+
+Sets the maximum `length` of a response that will be compressed.
+The length is determined only from the `Content-Length` response header field.
+
+### `brotli_bypass`
+
+- **syntax**: `brotli_bypass string ...`
+- **default**: `-`
+- **context**: `http`, `server`, `location`
+
+Defines conditions under which the response will not be compressed. If at least one value of the string parameters is neither empty nor equal to ‘0’, the response will not be compressed.
 
 ## Variables
 
