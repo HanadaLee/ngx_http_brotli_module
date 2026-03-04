@@ -28,67 +28,67 @@
 
 
 typedef struct {
-  ngx_flag_t                  enable;
-  ngx_array_t                *bypass;
+    ngx_flag_t                  enable;
+    ngx_array_t                *bypass;
 
-  /* Supported MIME types. */
-  ngx_hash_t                  types;
-  ngx_array_t                *types_keys;
+    /* Supported MIME types. */
+    ngx_hash_t                  types;
+    ngx_array_t                *types_keys;
 
-  /* Minimal required length for compression (if known). */
-  ssize_t                     min_length;
-  ssize_t                     max_length;
+    /* Minimal required length for compression (if known). */
+    ssize_t                     min_length;
+    ssize_t                     max_length;
 
-  ngx_bufs_t                  deprecated_unused_bufs;
+    ngx_bufs_t                  deprecated_unused_bufs;
 
-  /* Brotli encoder parameter: quality */
-  ngx_int_t                   quality;
+    /* Brotli encoder parameter: quality */
+    ngx_int_t                   quality;
 
-  /* Brotli encoder parameter: (max) lg_win */
-  size_t                      lg_win;
+    /* Brotli encoder parameter: (max) lg_win */
+    size_t                      lg_win;
 } ngx_http_brotli_conf_t;
 
 
 typedef struct {
-  /* Brotli encoder instance. */
-  BrotliEncoderState         *encoder;
+    /* Brotli encoder instance. */
+    BrotliEncoderState         *encoder;
 
-  /* Payload length; -1, if unknown. */
-  off_t                       content_length;
+    /* Payload length; -1, if unknown. */
+    off_t                       content_length;
 
-  /* (uncompressed) bytes pushed to encoder. */
-  size_t                      bytes_in;
-  /* (compressed) bytes pulled from encoder. */
-  size_t                      bytes_out;
+    /* (uncompressed) bytes pushed to encoder. */
+    size_t                      bytes_in;
+    /* (compressed) bytes pulled from encoder. */
+    size_t                      bytes_out;
 
-  /* Input buffer chain. */
-  ngx_chain_t                *in;
+    /* Input buffer chain. */
+    ngx_chain_t                *in;
 
-  /* Output chain. */
-  ngx_chain_t                *out_chain;
+    /* Output chain. */
+    ngx_chain_t                *out_chain;
 
-  /* Output buffer. */
-  ngx_buf_t                  *out_buf;
+    /* Output buffer. */
+    ngx_buf_t                  *out_buf;
 
-  /* Various state flags. */
+    /* Various state flags. */
 
-  /* 1 if encoder is initialized, output chain and buffer are allocated. */
-  unsigned                    initialized:1;
-  /* 1 if compression is finished / failed. */
-  unsigned                    closed:1;
-  /* 1 if compression is finished. */
-  unsigned                    success:1;
+    /* 1 if encoder is initialized, output chain and buffer are allocated. */
+    unsigned                    initialized:1;
+    /* 1 if compression is finished / failed. */
+    unsigned                    closed:1;
+    /* 1 if compression is finished. */
+    unsigned                    success:1;
 
-  /* 1 if out_chain is ready to be committed, 0 otherwise. */
-  unsigned                    output_ready:1;
-  /* 1 if output buffer is committed to the next filter and not yet fully used.
-     0 otherwise. */
-  unsigned                    output_busy:1;
+    /* 1 if out_chain is ready to be committed, 0 otherwise. */
+    unsigned                    output_ready:1;
+    /* 1 if output buffer is committed to the next filter and not yet fully used.
+        0 otherwise. */
+    unsigned                    output_busy:1;
 
-  unsigned                    end_of_input:1;
-  unsigned                    end_of_block:1;
+    unsigned                    end_of_input:1;
+    unsigned                    end_of_block:1;
 
-  ngx_http_request_t         *request;
+    ngx_http_request_t         *request;
 } ngx_http_brotli_ctx_t;
 
 
@@ -236,9 +236,9 @@ static ngx_http_output_body_filter_pt ngx_http_next_body_filter;
 static ngx_int_t
 ngx_http_brotli_header_filter(ngx_http_request_t *r)
 {
-    ngx_table_elt_t       *h;
-    ngx_http_gzip_ctx_t   *ctx;
-    ngx_http_gzip_conf_t  *conf;
+    ngx_table_elt_t          *h;
+    ngx_http_brotli_ctx_t    *ctx;
+    ngx_http_brotli_conf_t   *conf;
 
     conf = ngx_http_get_module_loc_conf(r, ngx_http_brotli_filter_module);
 
