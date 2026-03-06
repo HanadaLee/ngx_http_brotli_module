@@ -49,6 +49,21 @@ ngx_module_order=
 
 . auto/module
 
+if [ "$ngx_module_link" != DYNAMIC ]; then
+    # ngx_module_order doesn't work with static modules,
+    # so we must re-order modules here.
+
+    if echo $HTTP_MODULES | grep ngx_http_gzip_static_module >/dev/null; then
+        next=ngx_http_gzip_static_module
+    else
+        next=ngx_http_static_module
+    fi
+
+    HTTP_MODULES=`echo $HTTP_MODULES \
+                  | sed "s/$ngx_module_name//" \
+                  | sed "s/$next/$ngx_module_name $next/"`
+fi
+
 have=NGX_HTTP_GZIP . auto/have
 have=NGX_HTTP_BROTLI_STATIC . auto/have
 have=NGX_HTTP_BROTLI_STATIC_MODULE . auto/have  # deprecated
