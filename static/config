@@ -53,7 +53,7 @@ if [ "$ngx_module_link" != DYNAMIC ]; then
     # ngx_module_order doesn't work with static modules,
     # so we must re-order modules here.
 
-    if echo $HTTP_MODULES | grep ngx_http_gzip_static_module >/dev/null; then
+    if [ "$HTTP_GZIP_STATIC" = YES ]; then
         next=ngx_http_gzip_static_module
     else
         next=ngx_http_static_module
