@@ -155,11 +155,10 @@ static ngx_command_t ngx_http_brotli_filter_commands[] = {
 
     { ngx_string("brotli"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF
+                        |NGX_HTTP_LIF_CONF
 #if (NGX_CONDITION)
                         |NGX_HTTP_MAIN_WHEN_CONF|NGX_HTTP_SRV_WHEN_CONF
                         |NGX_HTTP_LOC_WHEN_CONF
-#else
-                        |NGX_HTTP_LIF_CONF
 #endif
                         |NGX_CONF_FLAG,
 #if (NGX_CONDITION)

@@ -97,7 +97,7 @@ without checking if the client supports it.
 
 - **syntax**: `brotli on|off`
 - **default**: `off`
-- **context**: `http`, `server`, `location`, `when`
+- **context**: `http`, `server`, `location`, `if in location`, `when`
 
 Enables or disables on-the-fly compression of responses.
 
