@@ -10,6 +10,10 @@
 #include <ngx_core.h>
 #include <ngx_http.h>
 
+#if (NGX_CONDITION)
+#include <ngx_http_condition_module.h>
+#endif
+
 
 #if (NGX_HAVE_BROTLI_ENC_ENCODE_H)
 #include <brotli/enc/encode.h>
@@ -28,7 +32,11 @@
 
 
 typedef struct {
+#if (NGX_CONDITION)
+    ngx_array_t                *enable;
+#else
     ngx_flag_t                  enable;
+#endif
     ngx_array_t                *bypass;
 
     /* Supported MIME types. */
@@ -36,13 +44,22 @@ typedef struct {
     ngx_array_t                *types_keys;
 
     /* Minimal required length for compression (if known). */
+#if (NGX_CONDITION)
+    ngx_array_t                *min_length;
+    ngx_array_t                *max_length;
+#else
     ssize_t                     min_length;
     ssize_t                     max_length;
+#endif
 
     ngx_bufs_t                  deprecated_unused_bufs;
 
     /* Brotli encoder parameter: quality */
+#if (NGX_CONDITION)
+    ngx_array_t                *quality;
+#else
     ngx_int_t                   quality;
+#endif
 
     /* Brotli encoder parameter: (max) lg_win */
     size_t                      lg_win;
@@ -88,6 +105,9 @@ typedef struct {
     unsigned                    end_of_input:1;
     unsigned                    end_of_block:1;
 
+#if (NGX_CONDITION)
+    ngx_int_t                   quality;
+#endif
     ngx_http_request_t         *request;
 } ngx_http_brotli_ctx_t;
 
@@ -134,9 +154,19 @@ static ngx_conf_post_handler_pt ngx_http_brotli_parse_wbits_p =
 static ngx_command_t ngx_http_brotli_filter_commands[] = {
 
     { ngx_string("brotli"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_HTTP_LIF_CONF
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF
+#if (NGX_CONDITION)
+                        |NGX_HTTP_MAIN_WHEN_CONF|NGX_HTTP_SRV_WHEN_CONF
+                        |NGX_HTTP_LOC_WHEN_CONF
+#else
+                        |NGX_HTTP_LIF_CONF
+#endif
                         |NGX_CONF_FLAG,
+#if (NGX_CONDITION)
+      ngx_conf_set_conditional_flag_slot,
+#else
       ngx_conf_set_flag_slot,
+#endif
       NGX_HTTP_LOC_CONF_OFFSET,
       offsetof(ngx_http_brotli_conf_t, enable),
       NULL },
@@ -157,8 +187,17 @@ static ngx_command_t ngx_http_brotli_filter_commands[] = {
       &ngx_http_html_default_types[0] },
 
     { ngx_string("brotli_comp_level"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF
+#if (NGX_CONDITION)
+                        |NGX_HTTP_MAIN_WHEN_CONF|NGX_HTTP_SRV_WHEN_CONF
+                        |NGX_HTTP_LOC_WHEN_CONF
+#endif
+                        |NGX_CONF_TAKE1,
+#if (NGX_CONDITION)
+      ngx_conf_set_conditional_num_slot,
+#else
       ngx_conf_set_num_slot,
+#endif
       NGX_HTTP_LOC_CONF_OFFSET,
       offsetof(ngx_http_brotli_conf_t, quality),
       &ngx_http_brotli_comp_level_bounds },
@@ -171,15 +210,33 @@ static ngx_command_t ngx_http_brotli_filter_commands[] = {
       &ngx_http_brotli_parse_wbits_p },
 
     { ngx_string("brotli_min_length"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF
+#if (NGX_CONDITION)
+                        |NGX_HTTP_MAIN_WHEN_CONF|NGX_HTTP_SRV_WHEN_CONF
+                        |NGX_HTTP_LOC_WHEN_CONF
+#endif
+                        |NGX_CONF_TAKE1,
+#if (NGX_CONDITION)
+      ngx_conf_set_conditional_size_slot,
+#else
       ngx_conf_set_size_slot,
+#endif
       NGX_HTTP_LOC_CONF_OFFSET,
       offsetof(ngx_http_brotli_conf_t, min_length),
       NULL },
 
     { ngx_string("brotli_max_length"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF
+#if (NGX_CONDITION)
+                        |NGX_HTTP_MAIN_WHEN_CONF|NGX_HTTP_SRV_WHEN_CONF
+                        |NGX_HTTP_LOC_WHEN_CONF
+#endif
+                        |NGX_CONF_TAKE1,
+#if (NGX_CONDITION)
+      ngx_conf_set_conditional_size_slot,
+#else
       ngx_conf_set_size_slot,
+#endif
       NGX_HTTP_LOC_CONF_OFFSET,
       offsetof(ngx_http_brotli_conf_t, max_length),
       NULL },
@@ -236,22 +293,42 @@ static ngx_http_output_body_filter_pt ngx_http_next_body_filter;
 static ngx_int_t
 ngx_http_brotli_header_filter(ngx_http_request_t *r)
 {
+#if (NGX_CONDITION)
+    size_t                    min_length, max_length;
+#endif
     ngx_table_elt_t          *h;
     ngx_http_brotli_ctx_t    *ctx;
     ngx_http_brotli_conf_t   *conf;
 
     conf = ngx_http_get_module_loc_conf(r, ngx_http_brotli_filter_module);
 
+#if (NGX_CONDITION)
+    if (!ngx_http_get_conditional_flag_value(r, conf->enable)) {
+        return ngx_http_next_header_filter(r);
+    }
+
+    min_length = ngx_http_get_conditional_size_value(r, conf->min_length);
+    max_length = ngx_http_get_conditional_size_value(r, conf->max_length);
+
+    if ((r->headers_out.status != NGX_HTTP_OK
+#else
     if (!conf->enable
         || (r->headers_out.status != NGX_HTTP_OK
+#endif
             && r->headers_out.status != NGX_HTTP_FORBIDDEN
             && r->headers_out.status != NGX_HTTP_NOT_FOUND)
         || (r->headers_out.content_encoding
             && r->headers_out.content_encoding->value.len)
         || (r->headers_out.content_length_n != -1
+#if (NGX_CONDITION)
+            && (r->headers_out.content_length_n < (off_t) min_length
+                || (max_length > 0
+                    && r->headers_out.content_length_n > (off_t) max_length)))
+#else
             && (r->headers_out.content_length_n < conf->min_length
                 || (conf->max_length > 0
                     && r->headers_out.content_length_n > conf->max_length)))
+#endif
         || ngx_http_test_content_type(r, &conf->types) == NULL
         || r->header_only)
     {
@@ -287,6 +364,9 @@ ngx_http_brotli_header_filter(ngx_http_request_t *r)
 
     ctx->request = r;
     ctx->content_length = r->headers_out.content_length_n;
+#if (NGX_CONDITION)
+    ctx->quality = ngx_http_get_conditional_num_value(r, conf->quality);
+#endif
 
     /* Prepare response headers, so that following filters in the chain will
      * notice that response body is compressed.
@@ -710,6 +790,7 @@ static ngx_int_t
 ngx_http_brotli_filter_ensure_stream_initialized(ngx_http_request_t *r,
     ngx_http_brotli_ctx_t *ctx)
 {
+    ngx_int_t                quality;
     ngx_http_brotli_conf_t  *conf;
     BROTLI_BOOL              ok;
     size_t                   wbits;
@@ -721,6 +802,12 @@ ngx_http_brotli_filter_ensure_stream_initialized(ngx_http_request_t *r,
     ctx->initialized = 1;
 
     conf = ngx_http_get_module_loc_conf(r, ngx_http_brotli_filter_module);
+
+#if (NGX_CONDITION)
+    quality = ctx->quality;
+#else
+    quality = conf->quality;
+#endif
 
     /* Tune lg_win, if size is known. */
     if (ctx->content_length > 0) {
@@ -743,11 +830,11 @@ ngx_http_brotli_filter_ensure_stream_initialized(ngx_http_request_t *r,
     }
 
     ok = BrotliEncoderSetParameter(ctx->encoder, BROTLI_PARAM_QUALITY,
-                                   (uint32_t) conf->quality);
+                                   (uint32_t) quality);
     if (!ok) {
         ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
                       "BrotliEncoderSetParameter(QUALITY, %uD) failed",
-                      (uint32_t) conf->quality);
+                      (uint32_t) quality);
         return NGX_ERROR;
     }
 
@@ -777,7 +864,7 @@ ngx_http_brotli_filter_ensure_stream_initialized(ngx_http_request_t *r,
 
     ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "brotli encoder initialized: lvl:%i win:%d",
-                   conf->quality, (1 << wbits));
+                   quality, (1 << wbits));
 
     return NGX_OK;
 }
@@ -911,13 +998,26 @@ ngx_http_brotli_create_conf(ngx_conf_t *cf)
      * conf->types_keys = NULL;
      */
 
+#if (NGX_CONDITION)
+    conf->enable = NGX_CONF_UNSET_PTR;
+#else
     conf->enable = NGX_CONF_UNSET;
+#endif
     conf->bypass = NGX_CONF_UNSET_PTR;
 
+#if (NGX_CONDITION)
+    conf->quality = NGX_CONF_UNSET_PTR;
+#else
     conf->quality = NGX_CONF_UNSET;
+#endif
     conf->lg_win = NGX_CONF_UNSET_SIZE;
+#if (NGX_CONDITION)
+    conf->min_length = NGX_CONF_UNSET_PTR;
+    conf->max_length = NGX_CONF_UNSET_PTR;
+#else
     conf->min_length = NGX_CONF_UNSET;
     conf->max_length = NGX_CONF_UNSET;
+#endif
 
     return conf;
 }
@@ -930,13 +1030,43 @@ ngx_http_brotli_merge_conf(ngx_conf_t *cf, void *parent,
     ngx_http_brotli_conf_t *prev = parent;
     ngx_http_brotli_conf_t *conf = child;
 
+#if (NGX_CONDITION)
+    if (ngx_conf_merge_conditional_flag_value(cf, &conf->enable,
+            prev->enable, 0) != NGX_OK)
+    {
+        return NGX_CONF_ERROR;
+    }
+#else
     ngx_conf_merge_value(conf->enable, prev->enable, 0);
+#endif
     ngx_conf_merge_ptr_value(conf->bypass, prev->bypass, NULL);
 
+#if (NGX_CONDITION)
+    if (ngx_conf_merge_conditional_num_value(cf, &conf->quality,
+            prev->quality, 6) != NGX_OK)
+    {
+        return NGX_CONF_ERROR;
+    }
+#else
     ngx_conf_merge_value(conf->quality, prev->quality, 6);
+#endif
     ngx_conf_merge_size_value(conf->lg_win, prev->lg_win, 19);
+#if (NGX_CONDITION)
+    if (ngx_conf_merge_conditional_size_value(cf, &conf->min_length,
+            prev->min_length, 20) != NGX_OK)
+    {
+        return NGX_CONF_ERROR;
+    }
+
+    if (ngx_conf_merge_conditional_size_value(cf, &conf->max_length,
+            prev->max_length, 0) != NGX_OK)
+    {
+        return NGX_CONF_ERROR;
+    }
+#else
     ngx_conf_merge_value(conf->min_length, prev->min_length, 20);
     ngx_conf_merge_value(conf->max_length, prev->max_length, 0);
+#endif
 
     if (ngx_http_merge_types(cf, &conf->types_keys, &conf->types,
                              &prev->types_keys, &prev->types,

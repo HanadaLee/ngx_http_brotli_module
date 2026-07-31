@@ -28,6 +28,7 @@ ngx_brotli is a set of two nginx modules:
     - [`brotli_comp_level`](#brotli_comp_level)
     - [`brotli_window`](#brotli_window)
     - [`brotli_min_length`](#brotli_min_length)
+    - [`brotli_max_length`](#brotli_max_length)
     - [`brotli_bypass`](#brotli_bypass)
   - [Variables](#variables)
     - [`$brotli_ratio`](#brotli_ratio)
@@ -96,7 +97,7 @@ without checking if the client supports it.
 
 - **syntax**: `brotli on|off`
 - **default**: `off`
-- **context**: `http`, `server`, `location`, `if`
+- **context**: `http`, `server`, `location`, `when`
 
 Enables or disables on-the-fly compression of responses.
 
@@ -122,7 +123,7 @@ Responses with the `text/html` MIME type are always compressed.
 
 - **syntax**: `brotli_comp_level <level>`
 - **default**: `6`
-- **context**: `http`, `server`, `location`
+- **context**: `http`, `server`, `location`, `when`
 
 Sets on-the-fly compression Brotli quality (compression) `level`.
 Acceptable values are in the range from `0` to `11`.
@@ -140,14 +141,16 @@ Sets Brotli window `size`. Acceptable values are `1k`, `2k`, `4k`, `8k`, `16k`,
 
 - **syntax**: `brotli_min_length <length>`
 - **default**: `20`
-- **context**: `http`, `server`, `location`
+- **context**: `http`, `server`, `location`, `when`
 
 Sets the minimum `length` of a response that will be compressed.
 The length is determined only from the `Content-Length` response header field.
 
+### `brotli_max_length`
+
 - **syntax**: `brotli_max_length <length>`
 - **default**: `0`
-- **context**: `http`, `server`, `location`
+- **context**: `http`, `server`, `location`, `when`
 
 Sets the maximum `length` of a response that will be compressed.
 The length is determined only from the `Content-Length` response header field.
