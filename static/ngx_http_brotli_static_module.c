@@ -455,7 +455,7 @@ ngx_http_brotli_quantity(u_char *p, u_char *last)
 
 
 static void *
-ngx_http_brotli_static_create_conf(ngx_conf_t* cf)
+ngx_http_brotli_static_create_conf(ngx_conf_t *cf)
 {
     ngx_http_brotli_static_conf_t  *conf;
 
