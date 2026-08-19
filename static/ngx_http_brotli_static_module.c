@@ -317,9 +317,6 @@ ngx_http_brotli_ok(ngx_http_request_t *r)
         return NGX_DECLINED;
     }
 
-    r->gzip_tested = 1;
-    r->gzip_ok = 0;
-
     return NGX_OK;
 }
 

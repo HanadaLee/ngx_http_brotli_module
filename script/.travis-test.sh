@@ -47,6 +47,16 @@ expect_br_equal() {
   fi
 }
 
+expect_gzip_equal() {
+  expected=$1
+  actual_gzip=$2
+  if gzip -dc $actual_gzip > ${actual_gzip}.txt; then
+    expect_equal $expected ${actual_gzip}.txt
+  else
+    add_result "FAIL (gzip decompression)"
+  fi
+}
+
 ################################################################################
 
 # Start default server.
@@ -119,6 +129,10 @@ expect_equal $FILES/small.html tmp/ae-12.txt
 echo "Test: A-E: 'b'"
 $CURL -H 'Accept-encoding: b' -o tmp/ae-13.txt $SERVER/small.html
 expect_equal $FILES/small.html tmp/ae-13.txt
+
+echo "Test: gzip fallback when precompressed brotli is missing"
+$CURL -H 'Accept-encoding: br, gzip' -o tmp/static-fallback.gz $SERVER/static-fallback.txt
+expect_gzip_equal $FILES/static-fallback.txt tmp/static-fallback.gz
 
 echo $HR
 echo "Stopping default NGINX"

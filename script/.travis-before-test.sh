@@ -19,6 +19,7 @@ fi
 curl --compressed -o $FILES/war-and-peace.txt http://www.gutenberg.org/files/2600/2600-0.txt
 echo "Kot lomom kolol slona!" > $FILES/small.txt
 echo "<html>Kot lomom kolol slona!</html>" > $FILES/small.html
+echo "Brotli static gzip fallback" > $FILES/static-fallback.txt
 
 # Restore status-quo.
 cd $ROOT
