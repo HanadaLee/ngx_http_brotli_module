@@ -20,6 +20,7 @@ events {}
 http {
     %%TEST_GLOBALS_HTTP%%
     default_type text/plain;
+    brotli_http_version 1.0;
     server {
         listen 127.0.0.1:8080;
         root %%TESTDIR%%;

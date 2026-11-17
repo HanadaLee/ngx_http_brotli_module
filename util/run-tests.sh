@@ -13,6 +13,7 @@ configure_args=(
     --prefix="$nginx_source/test-prefix"
     --with-debug
     --with-http_ssl_module
+    --with-http_v3_module
     --with-http_v2_module
     --with-http_realip_module
     --with-http_sub_module
@@ -25,7 +26,11 @@ configure_args=(
 configure_args+=(--add-module="$module_root")
 
 cd "$nginx_source"
-sh ./configure "${configure_args[@]}"
+if [[ -f auto/configure ]]; then
+    sh auto/configure "${configure_args[@]}"
+else
+    sh ./configure "${configure_args[@]}"
+fi
 make -j"$build_jobs"
 
 export TEST_NGINX_BINARY="$nginx_source/objs/nginx"
@@ -53,3 +58,10 @@ if (( ${#tests[@]} == 0 )); then
     exit 1
 fi
 prove -v "${tests[@]}"
+
+export PERL5LIB="$module_root/.ci/nginx-tests/lib"
+export TEST_NGINX_ZSTD_TARGET_BLOCK_SIZE=0
+if grep -Eq '^#define NGX_HTTP_ZSTD_HAVE_TARGET_BLOCK_SIZE[[:space:]]+1$' "$nginx_source/objs/ngx_auto_config.h"; then
+    export TEST_NGINX_ZSTD_TARGET_BLOCK_SIZE=1
+fi
+prove -v t/parity/*.t

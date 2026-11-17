@@ -52,6 +52,8 @@ jobs:
             libpcre2-dev \
             libssl-dev \
             zlib1g-dev \
+            python3 \
+            libcryptx-perl \
             perl \
             pkg-config \
             libbrotli-dev \
