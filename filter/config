@@ -1,3 +1,5 @@
+have=NGX_HTTP_GZIP . auto/have
+
 # Copyright (C) 2015-2016 Google Inc.
 # All rights reserved.
 #
@@ -73,7 +75,7 @@ fi
 ngx_module_srcs="$BROTLI_MODULE_SRC_DIR/ngx_http_brotli_filter_module.c"
 
 if [ "$use_system_brotli" = yes ]; then
-    ngx_module_incs="$(pkg-config --cflags-only-I libbrotlienc)"
+    ngx_module_incs="$(pkg-config --cflags-only-I libbrotlienc | sed 's/-I//g')"
     ngx_module_libs="$(pkg-config --libs libbrotlienc) -lm"
     ngx_module_deps=""
 else

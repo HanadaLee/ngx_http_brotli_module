@@ -45,7 +45,11 @@ ngx_module_incs=
 ngx_module_deps=
 ngx_module_srcs="$BROTLI_MODULE_SRC_DIR/ngx_http_brotli_static_module.c"
 ngx_module_libs=
-ngx_module_order=
+ngx_module_order="$ngx_module_name \
+                  ngx_http_dav_module ngx_http_autoindex_module \
+                  ngx_http_index_module ngx_http_random_index_module \
+                  ngx_http_access_module ngx_http_realip_module \
+                  ngx_http_write_filter_module"
 
 . auto/module
 
