@@ -30,6 +30,11 @@ ngx_brotli is a set of two nginx modules:
     - [`brotli_min_length`](#brotli_min_length)
     - [`brotli_max_length`](#brotli_max_length)
     - [`brotli_bypass`](#brotli_bypass)
+    - [`brotli_postpone`](#brotli_postpone)
+    - [`brotli_no_buffer`](#brotli_no_buffer)
+    - [`brotli_http_version`](#brotli_http_version)
+    - [`brotli_proxied`](#brotli_proxied)
+    - [`brotli_disable`](#brotli_disable)
   - [Variables](#variables)
     - [`$brotli_ratio`](#brotli_ratio)
   - [Sample configuration](#sample-configuration)
@@ -87,11 +92,13 @@ load_module modules/ngx_http_brotli_static_module.so;
 
 - **syntax**: `brotli_static on|off|always`
 - **default**: `off`
-- **context**: `http`, `server`, `location`
+- **context**: `http`, `server`, `location`, `when`
 
 Enables or disables checking of the existence of pre-compressed files with`.br`
 extension. With the `always` value, pre-compressed file is used in all cases,
 without checking if the client supports it.
+
+The following directives are also taken into account: `brotli_http_version`, `brotli_proxied`, `brotli_disable`, and `gzip_vary`.
 
 ### `brotli`
 
@@ -117,7 +124,7 @@ Responses with the `text/html` MIME type are always compressed.
 - **default**: `32 4k|16 8k`
 - **context**: `http`, `server`, `location`
 
-**Deprecated**, ignored.
+Sets the number and size of output buffers used to compress a response. By default, the buffer size is equal to one memory page. This is either 4K or 8K, depending on a platform.
 
 ### `brotli_comp_level`
 
@@ -162,6 +169,46 @@ The length is determined only from the `Content-Length` response header field.
 - **context**: `http`, `server`, `location`
 
 Defines conditions under which the response will not be compressed. If at least one value of the string parameters is neither empty nor equal to ‘0’, the response will not be compressed.
+
+### brotli_postpone
+
+**Syntax:** `brotli_postpone size;`\
+**Default:** `brotli_postpone 0;`\
+**Context:** `http`, `server`, `location`
+
+Postpones encoder initialization until the specified amount of input has been buffered. A flush or the end of the response starts compression earlier.
+
+### brotli_no_buffer
+
+**Syntax:** `brotli_no_buffer on | off;`\
+**Default:** `brotli_no_buffer off;`\
+**Context:** `http`, `server`, `location`
+
+Passes partially filled output buffers downstream when the currently available input has been consumed. This does not force an encoder flush.
+
+### brotli_http_version
+
+**Syntax:** `brotli_http_version 1.0 | 1.1;`\
+**Default:** `brotli_http_version 1.1;`\
+**Context:** `http`, `server`, `location`
+
+Alias of [gzip_http_version](https://nginx.org/en/docs/http/ngx_http_gzip_module.html#gzip_http_version).
+
+### brotli_proxied
+
+**Syntax:** `brotli_proxied off | expired | no-cache | no-store | private | no_last_modified | no_etag | auth | any ...;`\
+**Default:** `brotli_proxied off;`\
+**Context:** `http`, `server`, `location`
+
+Alias of [gzip_proxied](https://nginx.org/en/docs/http/ngx_http_gzip_module.html#gzip_proxied).
+
+### brotli_disable
+
+**Syntax:** `brotli_disable regex ...;`\
+**Default:** —\
+**Context:** `http`, `server`, `location`
+
+Alias of [gzip_disable](https://nginx.org/en/docs/http/ngx_http_gzip_module.html#gzip_disable).
 
 ## Variables
 
@@ -214,3 +261,16 @@ See [Contributing](CONTRIBUTING.md).
     LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
     OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
     SUCH DAMAGE.
+
+
+## Compatibility
+
+Dynamic compression applies to main requests with status 200, 207, 403, or 404. HEAD responses and responses with an existing nonempty `Content-Encoding` are passed through. `Cache-Control: no-transform` prevents dynamic compression.
+
+The core `gzip_http_version`, `gzip_proxied`, and `gzip_disable` settings also apply. Their defaults restrict compression to HTTP/1.1 or later and disable it for requests with a `Via` header. The `brotli_*` aliases configure the same core settings.
+
+Directives whose context includes `when` support [ngx_expr_module](https://github.com/HanadaLee/ngx_expr_module). The module also builds on unpatched nginx without expr support.
+
+## Testing
+
+`util/run-tests.sh` runs the existing suite and the regressions under `t/parity/`. The latter use [nginx-tests](https://github.com/nginx/nginx-tests) and cover proxy buffering on and off, slow clients, cancellation, streaming, HTTP/2 and HTTP/3, static files, and conditional configuration. Set `TEST_NGINX_BINARY` and `PERL5LIB` to run `prove -v t/parity/*.t` directly.
